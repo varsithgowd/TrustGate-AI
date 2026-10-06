@@ -3,6 +3,7 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const { scanText } = require('../services/securityEngine');
 const { generateGeminiResponse } = require('../services/geminiService');
+const { generateOpenAIResponse } = require('../services/openaiService');
 const ScanAudit = require('../models/ScanAudit');
 
 /**
@@ -38,7 +39,7 @@ router.post('/chat', authMiddleware, async (req, res) => {
             console.error('Audit save error:', auditErr.message);
         }
 
-        // 3. PROMPT INJECTION / CRITICAL THREAT: STOP, DO NOT CALL GEMINI
+        // 3. PROMPT INJECTION / CRITICAL THREAT: STOP, DO NOT CALL ANY AI PROVIDER
         if (security.action === 'BLOCKED') {
             return res.json({
                 security: {
@@ -50,20 +51,21 @@ router.post('/chat', authMiddleware, async (req, res) => {
                     sanitizedText: security.sanitizedText
                 },
                 response: null,
+                provider: null,
                 blocked: true
             });
         }
 
-        // 4. PREPARE PAYLOAD FOR GEMINI
+        // 4. PREPARE PAYLOAD FOR AI PROVIDERS
         // When SANITIZED, forward the redacted text; when ALLOWED, forward the original text
-        const promptForGemini = security.action === 'SANITIZED'
+        const promptForAI = security.action === 'SANITIZED'
             ? security.sanitizedText
             : trimmedMessage;
 
-        // 5. CALL GEMINI API SECURELY
-        const geminiResult = await generateGeminiResponse(promptForGemini);
+        // 5. CALL GEMINI API (PRIMARY PROVIDER)
+        const geminiResult = await generateGeminiResponse(promptForAI);
 
-        if (!geminiResult.success) {
+        if (geminiResult.success) {
             return res.json({
                 security: {
                     riskScore: security.riskScore,
@@ -73,13 +75,33 @@ router.post('/chat', authMiddleware, async (req, res) => {
                     action: security.action,
                     sanitizedText: security.sanitizedText
                 },
-                response: null,
-                status: geminiResult.status || 502,
-                error: geminiResult.error || 'Gemini service encountered an issue processing the request.'
+                response: geminiResult.text,
+                provider: 'gemini'
             });
         }
 
-        // 6. RETURN SECURITY VERDICT TOGETHER WITH GEMINI RESPONSE
+        // 6. GEMINI TEMPORARY FAILURE (503 / Quota / Rate-limit / Timeout): ENGAGE OPENAI FALLBACK
+        console.warn(`[TrustGate AI Route] Gemini primary returned failure (${geminiResult.status}: ${geminiResult.error}). Engaging OpenAI fallback...`);
+        const openaiResult = await generateOpenAIResponse(promptForAI);
+
+        if (openaiResult.success) {
+            console.log('[TrustGate AI Route] OpenAI fallback response succeeded.');
+            return res.json({
+                security: {
+                    riskScore: security.riskScore,
+                    riskLevel: security.riskLevel,
+                    threats: security.threats,
+                    redactions: security.redactions,
+                    action: security.action,
+                    sanitizedText: security.sanitizedText
+                },
+                response: openaiResult.text,
+                provider: 'openai'
+            });
+        }
+
+        // 7. BOTH PROVIDERS UNAVAILABLE
+        console.error(`[TrustGate AI Route] Both providers failed. Gemini: ${geminiResult.error} | OpenAI: ${openaiResult.error}`);
         return res.json({
             security: {
                 riskScore: security.riskScore,
@@ -89,7 +111,10 @@ router.post('/chat', authMiddleware, async (req, res) => {
                 action: security.action,
                 sanitizedText: security.sanitizedText
             },
-            response: geminiResult.text
+            response: null,
+            provider: null,
+            status: 503,
+            error: 'All AI services (Gemini and OpenAI) are temporarily unavailable. TrustGate is still protecting your request. Please try again in a moment.'
         });
 
     } catch (err) {

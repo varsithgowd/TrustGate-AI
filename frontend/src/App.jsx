@@ -177,6 +177,7 @@ export default function App() {
         result: securityData,
         security: securityData,
         aiResponse: data.response,
+        provider: data.provider,
         blocked: isBlocked,
         error: displayedError,
         timestamp: new Date().toISOString(),

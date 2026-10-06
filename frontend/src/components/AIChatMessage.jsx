@@ -31,6 +31,7 @@ export default function AIChatMessage({
     result,
     security,
     aiResponse,
+    provider,
     blocked,
     timestamp,
     error,
@@ -214,7 +215,16 @@ export default function AIChatMessage({
         {/* ─── Top Security Badge Bar (Distinct Semantic Colors) ─── */}
         <div className="flex flex-wrap items-center justify-between gap-2 px-1">
           <div className="flex items-center gap-2.5">
-            <span className={`text-xs font-bold ${isWhite ? 'text-[#0F0A1C]' : 'text-[#FFFFFF]'}`}>Gemini</span>
+            <span className={`text-xs font-bold ${isWhite ? 'text-[#0F0A1C]' : 'text-[#FFFFFF]'}`}>
+              {provider === 'openai' ? 'OpenAI' : 'Gemini'}
+            </span>
+            {provider === 'openai' && (
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold ${
+                isWhite ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+              }`}>
+                Fallback Active
+              </span>
+            )}
 
             {/* Security Semantic Badges */}
             {isBlocked ? (

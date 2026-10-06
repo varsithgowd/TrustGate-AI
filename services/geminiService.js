@@ -74,14 +74,16 @@ async function generateGeminiResponse(prompt) {
         if (generatedText) {
           return {
             success: true,
-            text: generatedText
+            text: generatedText,
+            provider: 'gemini'
           };
         }
 
         if (candidate?.finishReason) {
           return {
             success: true,
-            text: `[Model finished with status: ${candidate.finishReason}]`
+            text: `[Model finished with status: ${candidate.finishReason}]`,
+            provider: 'gemini'
           };
         }
 
