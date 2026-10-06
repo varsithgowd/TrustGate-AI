@@ -22,16 +22,16 @@ const PROFILE_KEY = 'trustgate_trust_profile';
 export default function App() {
   const [route, setRoute] = useState(() => {
     if (typeof window !== 'undefined') {
-      const path = window.location.pathname;
-      if (path === '/app' || path.startsWith('/app/')) return '/app';
+      const path = window.location.pathname.replace(/\/+$/, '') || '/';
+      if (path === '/app') return '/app';
     }
     return '/';
   });
 
   useEffect(() => {
     const handlePopState = () => {
-      const path = window.location.pathname;
-      if (path === '/app' || path.startsWith('/app/')) {
+      const path = window.location.pathname.replace(/\/+$/, '') || '/';
+      if (path === '/app') {
         setRoute('/app');
       } else {
         setRoute('/');
@@ -46,15 +46,7 @@ export default function App() {
       window.history.pushState({}, '', '/app');
     }
     setRoute('/app');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const navigateToLanding = () => {
-    if (window.location.pathname !== '/') {
-      window.history.pushState({}, '', '/');
-    }
-    setRoute('/');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const [theme, setTheme] = useState('white'); // 'white' (default white backdrop) | 'dark'
@@ -284,7 +276,6 @@ export default function App() {
         onSwitchView={setView}
         onOpenSettings={handleOpenSettings}
         theme={theme}
-        onNavigateLanding={navigateToLanding}
       />
 
       {/* ─── Main Content Area (Offset by sidebar width on desktop) ─── */}
@@ -298,7 +289,6 @@ export default function App() {
           onOpenSettings={() => handleOpenSettings('ai')}
           theme={theme}
           onToggleTheme={() => setTheme(theme === 'white' ? 'dark' : 'white')}
-          onNavigateLanding={navigateToLanding}
         />
 
         {/* ─── Main View Experience ─── */}
