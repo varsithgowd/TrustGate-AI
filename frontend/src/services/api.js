@@ -124,9 +124,20 @@ export const sendChatMessage = async (message) => {
   }
 
   try {
-    const response = await api.post('/api/ai/chat', { message });
+    const response = await api.post('/api/ai/chat', { message }, { timeout: 45000 });
     return response.data;
   } catch (err) {
+    if (
+      err.response?.status === 503 ||
+      err.response?.data?.status === 503 ||
+      err.response?.data?.error?.toLowerCase().includes('temporarily busy') ||
+      err.response?.data?.message?.toLowerCase().includes('temporarily busy')
+    ) {
+      throw new Error('Gemini is temporarily busy. TrustGate is still protecting your request. Please try again in a moment.');
+    }
+    if (err.code === 'ECONNABORTED' || err.message?.toLowerCase().includes('timeout')) {
+      throw new Error('Gemini is temporarily busy. TrustGate is still protecting your request. Please try again in a moment.');
+    }
     if (!err.response) {
       throw new Error('Unable to reach the TrustGate backend. Make sure the backend is running.');
     }

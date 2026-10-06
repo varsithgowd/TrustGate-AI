@@ -8,8 +8,12 @@ const GEMINI_MODELS = [
   'gemini-3.8-flash'
 ];
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const RETRY_DELAYS = [1000, 2000, 4000]; // Retry 1: 1s, Retry 2: 2s, Retry 3: 4s
+const MAX_RETRIES = 3;
+
 /**
- * Generate a response from Google Gemini API
+ * Generate a response from Google Gemini API with exponential backoff on HTTP 503
  * @param {string} prompt - The validated/sanitized text to send to Gemini
  * @returns {Promise<{ success: boolean, text?: string, error?: string, status?: number }>}
  */
@@ -23,14 +27,19 @@ async function generateGeminiResponse(prompt) {
     };
   }
 
-  let lastError = null;
+  const model = GEMINI_MODELS[0] || 'gemini-3.8-flash';
 
-  for (const model of GEMINI_MODELS) {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
 
     try {
-      console.log(`[TrustGate Gemini Service] Requesting model: ${model}`);
+      if (attempt === 0) {
+        console.log(`[TrustGate Gemini Service] Requesting model: ${model}`);
+      } else {
+        console.log(`[TrustGate Gemini Service] Retry attempt ${attempt}/${MAX_RETRIES} for model: ${model}`);
+      }
+
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
@@ -88,11 +97,37 @@ async function generateGeminiResponse(prompt) {
       const rawMsg = errorData?.error?.message || '';
       console.log(`[TrustGate Gemini Service] Response status: ${response.status}, error message: ${rawMsg}`);
 
-      if (response.status === 400 && rawMsg.toLowerCase().includes('api key')) {
+      // Permanent client errors: Do NOT retry 400, 401, 403, 404
+      if (response.status === 400) {
+        const isKeyError = rawMsg.toLowerCase().includes('api key');
         return {
           success: false,
-          error: 'Gemini API key is invalid or unauthorized.',
+          error: isKeyError ? 'Gemini API key is invalid or unauthorized.' : (rawMsg || 'Bad request to Gemini API.'),
+          status: isKeyError ? 401 : 400
+        };
+      }
+
+      if (response.status === 401) {
+        return {
+          success: false,
+          error: 'Gemini API authentication failed.',
           status: 401
+        };
+      }
+
+      if (response.status === 403) {
+        return {
+          success: false,
+          error: rawMsg || 'Gemini API access forbidden.',
+          status: 403
+        };
+      }
+
+      if (response.status === 404) {
+        return {
+          success: false,
+          error: `Model ${model} not available`,
+          status: 404
         };
       }
 
@@ -104,26 +139,36 @@ async function generateGeminiResponse(prompt) {
         };
       }
 
-      if (response.status === 404) {
-        lastError = `Model ${model} not available`;
-        continue; // Try next fallback model
+      // Transient 503 Service Unavailable / High demand / Overloaded
+      const is503 = response.status === 503 ||
+        errorData?.error?.code === 503 ||
+        errorData?.error?.status === 'UNAVAILABLE' ||
+        rawMsg.toLowerCase().includes('high demand') ||
+        rawMsg.toLowerCase().includes('overloaded');
+
+      if (is503) {
+        if (attempt < MAX_RETRIES) {
+          const delay = RETRY_DELAYS[attempt];
+          console.warn(`[TrustGate Gemini Service] Gemini 503 High Demand (Attempt ${attempt + 1}/${MAX_RETRIES + 1}). Retrying in ${delay / 1000}s (Retry ${attempt + 1}/${MAX_RETRIES})...`);
+          await sleep(delay);
+          continue; // Execute retry
+        }
+
+        console.error(`[TrustGate Gemini Service] Gemini 503: Exhausted all ${MAX_RETRIES} retries.`);
+        return {
+          success: false,
+          error: 'Gemini is temporarily busy. TrustGate is still protecting your request. Please try again in a moment.',
+          status: 503
+        };
       }
 
-      if (response.status === 503) {
-        lastError = rawMsg || 'The Gemini model is currently experiencing high demand from Google. Please try again in a few moments.';
-        continue;
-      }
-
-      if (response.status >= 500) {
-        lastError = rawMsg || 'Gemini service is temporarily unavailable. Please try again.';
-        continue;
-      }
-
+      // Other 5xx errors (e.g. 500, 502, 504)
       return {
         success: false,
         error: rawMsg || `Gemini API returned status ${response.status}`,
         status: response.status
       };
+
     } catch (err) {
       clearTimeout(timeoutId);
       if (err.name === 'AbortError') {
@@ -133,14 +178,18 @@ async function generateGeminiResponse(prompt) {
           status: 504
         };
       }
-      lastError = err.message;
+      return {
+        success: false,
+        error: err.message || 'Unable to communicate with the Gemini API service.',
+        status: 502
+      };
     }
   }
 
   return {
     success: false,
-    error: lastError || 'Unable to communicate with the Gemini API service.',
-    status: 502
+    error: 'Gemini is temporarily busy. TrustGate is still protecting your request. Please try again in a moment.',
+    status: 503
   };
 }
 

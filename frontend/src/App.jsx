@@ -157,6 +157,19 @@ export default function App() {
       const securityData = data.security || {};
       const isBlocked = data.blocked || securityData.action === 'BLOCKED';
 
+      let displayedError = data.error;
+      if (
+        data.status === 503 ||
+        (data.error && (
+          data.error.includes('503') ||
+          data.error.toLowerCase().includes('temporarily busy') ||
+          data.error.toLowerCase().includes('high demand') ||
+          data.error.toLowerCase().includes('overloaded')
+        ))
+      ) {
+        displayedError = 'Gemini is temporarily busy. TrustGate is still protecting your request. Please try again in a moment.';
+      }
+
       const assistantMsg = {
         id: Date.now() + 1,
         sender: 'assistant',
@@ -165,14 +178,22 @@ export default function App() {
         security: securityData,
         aiResponse: data.response,
         blocked: isBlocked,
-        error: data.error,
+        error: displayedError,
         timestamp: new Date().toISOString(),
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
       saveScanToHistory(textToSend, securityData);
     } catch (err) {
-      const errMsg = err.message || 'TrustGate encountered an unexpected error.';
+      let errMsg = err.message || 'TrustGate encountered an unexpected error.';
+      if (
+        errMsg.includes('503') ||
+        errMsg.toLowerCase().includes('temporarily busy') ||
+        errMsg.toLowerCase().includes('high demand') ||
+        errMsg.toLowerCase().includes('overloaded')
+      ) {
+        errMsg = 'Gemini is temporarily busy. TrustGate is still protecting your request. Please try again in a moment.';
+      }
       setError(errMsg);
       const errorMsg = {
         id: Date.now() + 1,

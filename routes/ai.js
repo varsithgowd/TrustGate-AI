@@ -74,6 +74,7 @@ router.post('/chat', authMiddleware, async (req, res) => {
                     sanitizedText: security.sanitizedText
                 },
                 response: null,
+                status: geminiResult.status || 502,
                 error: geminiResult.error || 'Gemini service encountered an issue processing the request.'
             });
         }
