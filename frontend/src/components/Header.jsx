@@ -81,14 +81,14 @@ export default function Header({
           </div>
         </div>
 
-        {/* Model Selector Pill: Gemini 2.5 Flash */}
+        {/* Model Selector Pill: Gemini 3.8 Flash */}
         <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs transition-colors cursor-pointer select-none shadow-sm ${
           isWhite
             ? 'bg-purple-50/70 hover:bg-purple-100/70 border-[#7C3AED]/20 text-[#0F0A1C]'
             : 'bg-[#160D24]/70 hover:bg-[#211233] border-[#A78BFA]/20 text-[#FFFFFF]'
         }`}>
           <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
-          <span className="font-semibold">Gemini 2.5 Flash</span>
+          <span className="font-semibold">Gemini 3.8 Flash</span>
           <ChevronDown className={`w-3 h-3 ${isWhite ? 'text-[#6B637B]' : 'text-[#A8A0B8]'}`} />
         </div>
       </div>

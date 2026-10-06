@@ -133,7 +133,7 @@ export default function SettingsModal({
                   </span>
                 </div>
                 <p className={`text-xs ${isWhite ? 'text-[#6B637B]' : 'text-[#A8A0B8]'}`}>
-                  Currently serving requests via Google Gemini 2.5 Flash through the backend protected gateway.
+                  Currently serving requests via Google Gemini 3.8 Flash through the backend protected gateway.
                 </p>
                 <div className={`pt-2 grid grid-cols-2 gap-2 text-xs font-mono ${isWhite ? 'text-[#4B4459]' : 'text-[#A8A0B8]'}`}>
                   <div className={`p-2.5 rounded-xl border ${

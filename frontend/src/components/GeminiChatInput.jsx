@@ -199,7 +199,7 @@ export default function GeminiChatInput({
               {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>
 
-            {/* Inside Badges: Purple TrustGate Shield & Gemini 2.5 Flash */}
+            {/* Inside Badges: Purple TrustGate Shield & Gemini 3.8 Flash */}
             <div className="hidden sm:flex items-center gap-1.5 ml-1">
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium ${
                 isWhite
@@ -216,7 +216,7 @@ export default function GeminiChatInput({
                   : 'bg-white/[0.04] border border-white/8 text-[#A8A0B8]'
               }`}>
                 <Sparkles className={`w-3 h-3 ${isWhite ? 'text-[#7C3AED]' : 'text-[#A78BFA]'}`} />
-                <span>Gemini 2.5 Flash</span>
+                <span>Gemini 3.8 Flash</span>
               </span>
             </div>
           </div>

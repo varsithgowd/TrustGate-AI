@@ -69,7 +69,7 @@ const SCENARIOS = [
     riskScore: 5,
     riskLevel: 'LOW',
     threat: 'NONE',
-    explanation: 'Zero adversarial signatures detected. Clean query forwarded directly to Google Gemini 2.5 Flash.',
+    explanation: 'Zero adversarial signatures detected. Clean query forwarded directly to Google Gemini 3.8 Flash.',
     output: 'The principle of least privilege dictates granting only minimum permissions required to perform an assigned task...',
   },
 ];
@@ -417,7 +417,7 @@ export default function LandingPage({ onLaunchApp }) {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[#4B4459]">AI Engine:</span>
-            <strong className="text-[#0F0A1C]">Google Gemini 2.5</strong>
+            <strong className="text-[#0F0A1C]">Google Gemini 3.8 Flash</strong>
           </div>
         </div>
       </section>
