@@ -5,8 +5,7 @@
  */
 
 const GEMINI_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-flash-latest'
+  'gemini-2.5-flash'
 ];
 
 /**
@@ -31,6 +30,7 @@ async function generateGeminiResponse(prompt) {
     const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
 
     try {
+      console.log(`[TrustGate Gemini Service] Requesting model: ${model}`);
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
@@ -86,6 +86,7 @@ async function generateGeminiResponse(prompt) {
       // Handle non-200 responses safely without exposing internal secrets
       const errorData = await response.json().catch(() => ({}));
       const rawMsg = errorData?.error?.message || '';
+      console.log(`[TrustGate Gemini Service] Response status: ${response.status}, error message: ${rawMsg}`);
 
       if (response.status === 400 && rawMsg.toLowerCase().includes('api key')) {
         return {
@@ -108,8 +109,13 @@ async function generateGeminiResponse(prompt) {
         continue; // Try next fallback model
       }
 
+      if (response.status === 503) {
+        lastError = rawMsg || 'The Gemini model is currently experiencing high demand from Google. Please try again in a few moments.';
+        continue;
+      }
+
       if (response.status >= 500) {
-        lastError = 'Gemini service is temporarily unavailable. Please try again.';
+        lastError = rawMsg || 'Gemini service is temporarily unavailable. Please try again.';
         continue;
       }
 
