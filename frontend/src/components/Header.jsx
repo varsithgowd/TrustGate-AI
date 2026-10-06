@@ -18,6 +18,7 @@ export default function Header({
   onOpenSettings,
   theme = 'white',
   onToggleTheme,
+  onNavigateLanding,
 }) {
   const isWhite = theme === 'white';
 
@@ -42,17 +43,31 @@ export default function Header({
         </button>
 
         <div className="lg:hidden">
-          <TrustGateLogo size={24} showText textSize="text-xs" />
+          <button
+            type="button"
+            onClick={onNavigateLanding}
+            className="text-left cursor-pointer transition-opacity hover:opacity-80"
+            title="Return to Landing Page"
+          >
+            <TrustGateLogo size={24} showText textSize="text-xs" />
+          </button>
         </div>
 
         <div className="hidden lg:flex flex-col">
           <div className="flex items-center gap-2">
-            <h1 className={`text-sm font-extrabold tracking-tight ${isWhite ? 'text-[#0F0A1C]' : 'text-[#FFFFFF]'}`}>
-              TrustGate AI
-            </h1>
-            <span className="text-[10px] font-mono text-[#7C3AED] bg-[#7C3AED]/10 border border-[#7C3AED]/25 px-2 py-0.5 rounded-full font-bold">
-              Enterprise
-            </span>
+            <button
+              type="button"
+              onClick={onNavigateLanding}
+              className="text-left cursor-pointer group flex items-center gap-2"
+              title="Return to Landing Page"
+            >
+              <h1 className={`text-sm font-extrabold tracking-tight group-hover:text-[#7C3AED] transition-colors ${isWhite ? 'text-[#0F0A1C]' : 'text-[#FFFFFF]'}`}>
+                TrustGate AI
+              </h1>
+              <span className="text-[10px] font-mono text-[#7C3AED] bg-[#7C3AED]/10 border border-[#7C3AED]/25 px-2 py-0.5 rounded-full font-bold">
+                Enterprise
+              </span>
+            </button>
           </div>
           <p className={`text-[11px] ${isWhite ? 'text-[#6B637B]' : 'text-[#A8A0B8]'}`}>
             Protected AI Workspace

@@ -6,6 +6,7 @@ import AIChatView from './components/AIChatView';
 import CommandCenterView from './components/CommandCenterView';
 import AuthModal from './components/AuthModal';
 import SettingsModal from './components/SettingsModal';
+import LandingPage from './components/LandingPage';
 import {
   sendChatMessage,
   checkBackendHealth,
@@ -19,6 +20,43 @@ const MODE_KEY = 'trustgate_protection_mode';
 const PROFILE_KEY = 'trustgate_trust_profile';
 
 export default function App() {
+  const [route, setRoute] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path === '/app' || path.startsWith('/app/')) return '/app';
+    }
+    return '/';
+  });
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === '/app' || path.startsWith('/app/')) {
+        setRoute('/app');
+      } else {
+        setRoute('/');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigateToApp = () => {
+    if (window.location.pathname !== '/app') {
+      window.history.pushState({}, '', '/app');
+    }
+    setRoute('/app');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navigateToLanding = () => {
+    if (window.location.pathname !== '/') {
+      window.history.pushState({}, '', '/');
+    }
+    setRoute('/');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const [theme, setTheme] = useState('white'); // 'white' (default white backdrop) | 'dark'
   const [view, setView] = useState('chat'); // 'chat' (primary AI workspace) | 'command_center' (security overview)
   const [input, setInput] = useState('');
@@ -220,6 +258,11 @@ export default function App() {
     setIsSettingsModalOpen(true);
   };
 
+  // If route is landing page ('/'), show the Premium Landing Page
+  if (route === '/') {
+    return <LandingPage onLaunchApp={navigateToApp} />;
+  }
+
   return (
     <div className={`min-h-screen ${theme === 'white' ? 'theme-white bg-[#FAFAFE] text-[#0F0A1C]' : 'theme-dark bg-[#070509] text-[#FFFFFF]'} flex font-sans selection:bg-[#7C3AED]/25 selection:text-[#7C3AED] relative overflow-x-hidden transition-colors duration-300`}>
       {/* ─── Ambient Purple Glow & Matrix Background ─── */}
@@ -241,6 +284,7 @@ export default function App() {
         onSwitchView={setView}
         onOpenSettings={handleOpenSettings}
         theme={theme}
+        onNavigateLanding={navigateToLanding}
       />
 
       {/* ─── Main Content Area (Offset by sidebar width on desktop) ─── */}
@@ -254,6 +298,7 @@ export default function App() {
           onOpenSettings={() => handleOpenSettings('ai')}
           theme={theme}
           onToggleTheme={() => setTheme(theme === 'white' ? 'dark' : 'white')}
+          onNavigateLanding={navigateToLanding}
         />
 
         {/* ─── Main View Experience ─── */}

@@ -10,6 +10,7 @@ import {
   LogIn,
   X,
   Trash2,
+  Compass,
 } from 'lucide-react';
 import TrustGateLogo from './TrustGateLogo';
 
@@ -27,6 +28,7 @@ export default function Sidebar({
   onSwitchView,
   onOpenSettings,
   theme = 'white',
+  onNavigateLanding,
 }) {
   const isWhite = theme === 'white';
 
@@ -54,7 +56,17 @@ export default function Sidebar({
         <div className={`flex items-center justify-between h-20 px-6 border-b shrink-0 ${
           isWhite ? 'border-[#7C3AED]/10' : 'border-[#A78BFA]/10'
         }`}>
-          <TrustGateLogo size={32} showText stackedText theme={theme} />
+          <button
+            type="button"
+            onClick={() => {
+              if (onNavigateLanding) onNavigateLanding();
+              onClose();
+            }}
+            className="flex items-center text-left cursor-pointer hover:opacity-85 transition-opacity"
+            title="Return to Landing Page"
+          >
+            <TrustGateLogo size={32} showText stackedText theme={theme} />
+          </button>
           <button
             type="button"
             onClick={onClose}
@@ -254,6 +266,25 @@ export default function Sidebar({
               }`} />
               <span>Settings</span>
             </button>
+
+            {onNavigateLanding && (
+              <button
+                type="button"
+                id="sidebar-nav-landing"
+                onClick={() => {
+                  onNavigateLanding();
+                  onClose();
+                }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer group ${
+                  isWhite
+                    ? 'text-[#6D28D9] hover:bg-purple-50 bg-[#7C3AED]/5 border border-[#7C3AED]/15'
+                    : 'text-[#DDD6FE] hover:bg-white/10 bg-white/5 border border-white/10'
+                }`}
+              >
+                <Compass className="w-4 h-4 text-[#7C3AED] group-hover:rotate-12 transition-transform" />
+                <span>Landing Page</span>
+              </button>
+            )}
           </div>
         </div>
 
