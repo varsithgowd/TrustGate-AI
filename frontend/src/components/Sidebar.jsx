@@ -1,21 +1,23 @@
 import React from 'react';
 import {
   Plus,
+  MessageSquare,
+  ShieldCheck,
+  History,
+  Lock,
+  Settings,
   LogOut,
   LogIn,
-  MessageSquare,
-  LayoutDashboard,
-  Sparkles,
   X,
+  Trash2,
 } from 'lucide-react';
 import TrustGateLogo from './TrustGateLogo';
-import ScanHistory from './ScanHistory';
 
 export default function Sidebar({
   isOpen,
   onClose,
   onNewScan,
-  history,
+  history = [],
   onSelectHistory,
   onClearHistory,
   user,
@@ -23,168 +25,270 @@ export default function Sidebar({
   onOpenAuth,
   currentView = 'chat',
   onSwitchView,
-  onOpenOnboarding,
+  onOpenSettings,
+  theme = 'white',
 }) {
+  const isWhite = theme === 'white';
+
   return (
     <>
       {/* Mobile backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm lg:hidden animate-fade-in"
+          className={`fixed inset-0 z-40 ${isWhite ? 'bg-black/40' : 'bg-black/85'} backdrop-blur-md lg:hidden animate-fade-in`}
           onClick={onClose}
           aria-hidden="true"
         />
       )}
 
-      {/* Sidebar aside */}
+      {/* Luxury Purple Glassmorphic Sidebar */}
       <aside
-        className={`fixed left-0 top-0 bottom-0 z-50 w-72 flex flex-col bg-[#07090E] border-r border-white/8
-          transform transition-transform duration-250 ease-out
+        className={`fixed left-0 top-0 bottom-0 z-50 w-72 flex flex-col
+          ${isWhite ? 'bg-white/95 border-r border-[#7C3AED]/12 shadow-xl shadow-purple-950/5' : 'glass-panel border-r border-[#A78BFA]/15'}
+          backdrop-blur-2xl transform transition-transform duration-250 ease-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0 lg:z-30`}
-        aria-label="TrustGate AI navigation"
+        aria-label="TrustGate AI Workspace"
       >
-        {/* Brand header */}
-        <div className="flex items-center justify-between h-16 px-5 border-b border-white/7 shrink-0">
-          <TrustGateLogo size={28} showText textSize="text-sm font-bold" />
+        {/* Top: Logo + Brand */}
+        <div className={`flex items-center justify-between h-20 px-6 border-b shrink-0 ${
+          isWhite ? 'border-[#7C3AED]/10' : 'border-[#A78BFA]/10'
+        }`}>
+          <TrustGateLogo size={32} showText stackedText theme={theme} />
           <button
             type="button"
             onClick={onClose}
-            className="lg:hidden p-1.5 rounded-xl text-[#8B95A7] hover:text-white hover:bg-white/5 transition-colors cursor-pointer btn-premium"
+            className={`lg:hidden p-1.5 rounded-xl transition-colors cursor-pointer ${
+              isWhite ? 'text-[#6B637B] hover:text-[#0F0A1C] hover:bg-black/5' : 'text-[#A8A0B8] hover:text-[#FFFFFF] hover:bg-white/5'
+            }`}
             aria-label="Close sidebar"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* New Chat / Scan button with sheen and scale */}
-        <div className="px-4 pt-4 pb-2 shrink-0">
+        {/* Action: + New Chat (Purple gradient button) */}
+        <div className="px-5 pt-5 pb-3 shrink-0">
           <button
             type="button"
-            id="sidebar-new-scan-btn"
+            id="sidebar-new-chat-btn"
             onClick={() => {
               onNewScan();
               onClose();
             }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/12 hover:border-white/25 text-white text-xs font-bold transition-all duration-180 cursor-pointer group shadow-sm btn-premium"
+            className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] hover:from-[#6D28D9] hover:to-[#7C3AED] text-white text-xs font-bold transition-all duration-200 cursor-pointer shadow-lg shadow-[#7C3AED]/20 btn-premium group"
           >
-            <Plus className="w-4 h-4 transition-transform duration-200 group-hover:scale-125" />
-            <span>New Chat / Scan</span>
+            <Plus className="w-4 h-4 text-white/90 transition-transform duration-200 group-hover:scale-125 group-hover:text-white" />
+            <span className="tracking-wide text-white">New Chat</span>
           </button>
         </div>
 
-        {/* Primary Navigation */}
-        <nav className="px-3 py-2 shrink-0 space-y-1" aria-label="Main Navigation">
-          <div className="px-2 pb-1 text-[10px] font-mono uppercase tracking-wider text-[#8B95A7]/60">
-            Navigation
-          </div>
-
-          {/* AI Chat (Primary) */}
-          <button
-            type="button"
-            id="sidebar-nav-chat"
-            onClick={() => {
-              onSwitchView('chat');
-              onClose();
-            }}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-180 cursor-pointer group ${
-              currentView === 'chat'
-                ? 'sidebar-nav-active border border-white/15 shadow-sm'
-                : 'text-[#8B95A7] hover:text-white hover:bg-white/[0.04] border border-transparent'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <MessageSquare className="w-4 h-4 text-white/80 group-hover:translate-x-0.5 group-hover:text-white transition-all duration-150" />
-              <span>AI Chat</span>
-            </div>
-            <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-white/8 text-[#CBD5E1] border border-white/10">
-              Primary
-            </span>
-          </button>
-
-          {/* Security Command Center (Secondary) */}
-          <button
-            type="button"
-            id="sidebar-nav-command"
-            onClick={() => {
-              onSwitchView('command_center');
-              onClose();
-            }}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-180 cursor-pointer group ${
-              currentView === 'command_center'
-                ? 'sidebar-nav-active border border-white/15 shadow-sm'
-                : 'text-[#8B95A7] hover:text-white hover:bg-white/[0.04] border border-transparent'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <LayoutDashboard className="w-4 h-4 text-white/80 group-hover:translate-x-0.5 group-hover:text-white transition-all duration-150" />
-              <span>Command Center</span>
-            </div>
-            <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-white/4 text-[#8B95A7]">
-              Dashboard
-            </span>
-          </button>
-
-          {/* Onboarding Tour */}
-          <button
-            type="button"
-            id="sidebar-nav-tour"
-            onClick={() => {
-              onOpenOnboarding();
-              onClose();
-            }}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#8B95A7] hover:text-white hover:bg-white/[0.04] transition-all duration-150 cursor-pointer group"
-          >
-            <Sparkles className="w-4 h-4 text-[#8B95A7] group-hover:text-white group-hover:translate-x-0.5 transition-all duration-150" />
-            <span>Guardian Setup Tour</span>
-          </button>
-        </nav>
-
-        {/* Divider */}
-        <div className="h-px bg-white/7 mx-4 my-2 shrink-0" />
-
-        {/* Scan History Feed */}
-        <div className="flex-1 overflow-y-auto px-1 py-1 min-h-0">
-          <ScanHistory
-            history={history}
-            onSelectHistory={(item) => {
-              onSelectHistory(item);
-              onClose();
-            }}
-            onClearHistory={onClearHistory}
-          />
-        </div>
-
-        {/* Bottom system status & user profile */}
-        <div className="shrink-0 border-t border-white/7 p-4 space-y-3 bg-[#05070B]">
-          
-          {/* Real-time status with calm pulse */}
-          <div className="flex items-center gap-2.5 rounded-xl border border-white/7 bg-white/[0.02] px-3 py-2 card-interactive">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-calm-pulse shrink-0" />
-            <div className="flex flex-col min-w-0">
-              <span className="text-[11px] font-semibold text-white">TrustGate Guardrails</span>
-              <span className="text-[10px] text-[#8B95A7] font-mono">System Secure</span>
-            </div>
-          </div>
-
-          {/* User row */}
-          {user ? (
-            <div className="flex items-center gap-2.5 px-1 py-0.5">
-              <div className="w-7 h-7 rounded-full bg-white/10 text-white text-xs font-bold flex items-center justify-center shrink-0 border border-white/20">
-                {user.email?.[0]?.toUpperCase() || 'U'}
-              </div>
-              <span className="flex-1 text-xs text-[#CBD5E1] truncate font-mono" title={user.email}>
-                {user.email}
+        {/* Scrollable Middle: Navigation + Recent Chats */}
+        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-6 min-h-0">
+          {/* Recent Chats Section */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between px-2 pb-1">
+              <span className={`text-[11px] font-semibold uppercase tracking-wider ${
+                isWhite ? 'text-[#6B637B]' : 'text-[#A8A0B8]'
+              }`}>
+                Recent Chats
               </span>
+              {history.length > 0 && (
+                <button
+                  type="button"
+                  onClick={onClearHistory}
+                  title="Clear history"
+                  className={`p-1 transition-colors cursor-pointer ${
+                    isWhite ? 'text-[#6B637B]/70 hover:text-rose-500' : 'text-[#A8A0B8]/60 hover:text-rose-400'
+                  }`}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {history.length === 0 ? (
+              <div className={`px-3 py-3 rounded-xl border text-center ${
+                isWhite ? 'border-[#7C3AED]/12 bg-[#7C3AED]/[0.03]' : 'border-white/5 bg-white/[0.01]'
+              }`}>
+                <p className={`text-[11px] ${isWhite ? 'text-[#6B637B]' : 'text-[#A8A0B8]/70'}`}>No conversations yet</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {history.slice(0, 8).map((item) => {
+                  const isBlocked = item.action === 'BLOCKED';
+                  const isSanitized = item.action === 'SANITIZED';
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        onSelectHistory(item);
+                        onClose();
+                      }}
+                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs transition-all duration-150 text-left group cursor-pointer ${
+                        isWhite
+                          ? 'text-[#4B4459] hover:text-[#0F0A1C] hover:bg-[#7C3AED]/8'
+                          : 'text-[#A8A0B8] hover:text-[#FFFFFF] hover:bg-[#7C3AED]/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <MessageSquare className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                          isWhite
+                            ? 'text-[#6B637B] group-hover:text-[#7C3AED]'
+                            : 'text-[#A8A0B8]/60 group-hover:text-[#A78BFA]'
+                        }`} />
+                        <span className="truncate max-w-[150px] font-sans font-medium">
+                          {item.inputSnippet || item.rawInput}
+                        </span>
+                      </div>
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                          isBlocked
+                            ? 'bg-rose-500'
+                            : isSanitized
+                            ? 'bg-amber-500'
+                            : 'bg-emerald-500'
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Security Section */}
+          <div className="space-y-1">
+            <div className={`px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider ${
+              isWhite ? 'text-[#6B637B]' : 'text-[#A8A0B8]'
+            }`}>
+              Security
+            </div>
+
+            {/* Protection Overview */}
+            <button
+              type="button"
+              id="sidebar-nav-overview"
+              onClick={() => {
+                onSwitchView('command_center');
+                onClose();
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 cursor-pointer ${
+                currentView === 'command_center'
+                  ? 'sidebar-nav-active font-semibold'
+                  : isWhite
+                  ? 'text-[#4B4459] hover:text-[#0F0A1C] hover:bg-[#7C3AED]/8'
+                  : 'text-[#A8A0B8] hover:text-[#FFFFFF] hover:bg-[#7C3AED]/10'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-[#7C3AED]" />
+                <span>Protection Overview</span>
+              </div>
+            </button>
+
+            {/* Threat History */}
+            <button
+              type="button"
+              id="sidebar-nav-threats"
+              onClick={() => {
+                onSwitchView('command_center');
+                onClose();
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 cursor-pointer ${
+                isWhite
+                  ? 'text-[#4B4459] hover:text-[#0F0A1C] hover:bg-[#7C3AED]/8'
+                  : 'text-[#A8A0B8] hover:text-[#FFFFFF] hover:bg-[#7C3AED]/10'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <History className={`w-4 h-4 ${isWhite ? 'text-[#6B637B]' : 'text-[#A8A0B8]'}`} />
+                <span>Threat History</span>
+              </div>
+              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                isWhite
+                  ? 'bg-[#7C3AED]/10 text-[#7C3AED] border border-[#7C3AED]/20'
+                  : 'bg-[#7C3AED]/15 text-[#A78BFA] border border-[#A78BFA]/20'
+              }`}>
+                {history.filter((h) => h.action === 'BLOCKED').length}
+              </span>
+            </button>
+
+            {/* Privacy */}
+            <button
+              type="button"
+              id="sidebar-nav-privacy"
+              onClick={() => {
+                if (onOpenSettings) onOpenSettings('privacy');
+                onClose();
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 cursor-pointer ${
+                isWhite
+                  ? 'text-[#4B4459] hover:text-[#0F0A1C] hover:bg-[#7C3AED]/8'
+                  : 'text-[#A8A0B8] hover:text-[#FFFFFF] hover:bg-[#7C3AED]/10'
+              }`}
+            >
+              <Lock className={`w-4 h-4 ${isWhite ? 'text-[#6B637B]' : 'text-[#A8A0B8]'}`} />
+              <span>Privacy</span>
+            </button>
+          </div>
+
+          {/* Settings Section */}
+          <div className="space-y-1">
+            <button
+              type="button"
+              id="sidebar-nav-settings"
+              onClick={() => {
+                if (onOpenSettings) onOpenSettings();
+                onClose();
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 cursor-pointer group ${
+                isWhite
+                  ? 'text-[#4B4459] hover:text-[#0F0A1C] hover:bg-[#7C3AED]/8'
+                  : 'text-[#A8A0B8] hover:text-[#FFFFFF] hover:bg-[#7C3AED]/10'
+              }`}
+            >
+              <Settings className={`w-4 h-4 transition-transform duration-200 group-hover:rotate-45 ${
+                isWhite ? 'text-[#6B637B] group-hover:text-[#7C3AED]' : 'text-[#A8A0B8] group-hover:text-[#A78BFA]'
+              }`} />
+              <span>Settings</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom: User Profile / Login */}
+        <div className={`shrink-0 border-t p-4 ${
+          isWhite ? 'border-[#7C3AED]/12 bg-[#FAFAFE]/95' : 'border-[#A78BFA]/10 bg-[#09060E]/95'
+        }`}>
+          {user ? (
+            <div className={`flex items-center justify-between gap-3 p-2 rounded-2xl border ${
+              isWhite ? 'bg-white border-[#7C3AED]/15 shadow-sm' : 'bg-white/[0.03] border-white/8'
+            }`}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#8B5CF6] border border-[#A78BFA]/40 text-white text-xs font-bold flex items-center justify-center shrink-0 shadow-sm shadow-[#7C3AED]/30">
+                  {user.email?.[0]?.toUpperCase() || 'U'}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className={`text-xs font-bold truncate ${isWhite ? 'text-[#0F0A1C]' : 'text-white'}`} title={user.email}>
+                    {user.email?.split('@')[0] || 'User'}
+                  </span>
+                  <span className={`text-[10px] truncate font-mono ${isWhite ? 'text-[#6B637B]' : 'text-[#A8A0B8]'}`}>
+                    {user.email}
+                  </span>
+                </div>
+              </div>
               <button
                 type="button"
                 id="sidebar-logout-btn"
                 onClick={onLogout}
                 aria-label="Log out"
                 title="Log out"
-                className="p-1.5 rounded-xl hover:bg-white/8 text-[#8B95A7] hover:text-white transition-colors cursor-pointer btn-premium"
+                className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                  isWhite ? 'text-[#6B637B] hover:text-rose-500 hover:bg-rose-50' : 'text-[#A8A0B8] hover:text-rose-400 hover:bg-rose-500/10'
+                }`}
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut className="w-4 h-4" />
               </button>
             </div>
           ) : (
@@ -195,10 +299,10 @@ export default function Sidebar({
                 onOpenAuth();
                 onClose();
               }}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white text-[#05070B] text-xs font-bold transition-all cursor-pointer shadow-sm btn-premium btn-sheen"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] hover:from-[#6D28D9] hover:to-[#7C3AED] text-white text-xs font-bold transition-all cursor-pointer shadow-md shadow-[#7C3AED]/25 btn-premium btn-sheen"
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>Log in to Scan</span>
+              <span>Log in to TrustGate</span>
             </button>
           )}
         </div>

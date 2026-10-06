@@ -5,9 +5,9 @@ import Header from './components/Header';
 import AIChatView from './components/AIChatView';
 import CommandCenterView from './components/CommandCenterView';
 import AuthModal from './components/AuthModal';
-import OnboardingFlow from './components/OnboardingFlow';
+import SettingsModal from './components/SettingsModal';
 import {
-  scanText,
+  sendChatMessage,
   checkBackendHealth,
   getStoredToken,
   getStoredUser,
@@ -15,12 +15,12 @@ import {
 } from './services/api';
 
 const HISTORY_STORAGE_KEY = 'trustgate_scan_history';
-const ONBOARDED_KEY = 'trustgate_onboarded';
 const MODE_KEY = 'trustgate_protection_mode';
 const PROFILE_KEY = 'trustgate_trust_profile';
 
 export default function App() {
-  const [view, setView] = useState('chat'); // 'chat' (primary) | 'command_center' (secondary)
+  const [theme, setTheme] = useState('white'); // 'white' (default white backdrop) | 'dark'
+  const [view, setView] = useState('chat'); // 'chat' (primary AI workspace) | 'command_center' (security overview)
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -29,19 +29,16 @@ export default function App() {
     try {
       const token = getStoredToken();
       const storedUser = getStoredUser();
-      return token ? storedUser || { email: 'authenticated_user' } : null;
+      return token ? storedUser || { email: 'enterprise_user@trustgate.ai' } : null;
     } catch {
       return null;
     }
   });
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => {
-    try {
-      return !localStorage.getItem(ONBOARDED_KEY);
-    } catch {
-      return false;
-    }
-  });
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState('security');
+
   const [protectionMode, setProtectionMode] = useState(() => {
     try {
       return localStorage.getItem(MODE_KEY) || 'strict';
@@ -49,6 +46,7 @@ export default function App() {
       return 'strict';
     }
   });
+
   const [trustProfile, setTrustProfile] = useState(() => {
     try {
       return localStorage.getItem(PROFILE_KEY) || 'developer';
@@ -56,6 +54,7 @@ export default function App() {
       return 'developer';
     }
   });
+
   const [backendStatus, setBackendStatus] = useState('checking');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [history, setHistory] = useState(() => {
@@ -67,8 +66,8 @@ export default function App() {
     }
   });
 
+  // Verify backend health
   useEffect(() => {
-    // Health check poll
     const verifyHealth = async () => {
       const health = await checkBackendHealth();
       setBackendStatus(health.ok ? 'online' : 'offline');
@@ -82,7 +81,7 @@ export default function App() {
     const historyItem = {
       id: Date.now(),
       timestamp: new Date().toISOString(),
-      inputSnippet: inputText.slice(0, 50) + (inputText.length > 50 ? '...' : ''),
+      inputSnippet: inputText.slice(0, 48) + (inputText.length > 48 ? '...' : ''),
       rawInput: inputText,
       riskScore: scanData.riskScore,
       riskLevel: scanData.riskLevel,
@@ -98,15 +97,15 @@ export default function App() {
     });
   };
 
-  const handleScan = async (textToScan) => {
-    if (!textToScan?.trim()) {
-      setError('Enter some text before scanning.');
+  const handleSendMessage = async (textToSend) => {
+    if (!textToSend?.trim()) {
+      setError('Enter some text before sending.');
       return;
     }
 
     const token = getStoredToken();
     if (!token) {
-      setError('Please log in before running a live security scan.');
+      setError('Please log in before sending an AI request.');
       setIsAuthModalOpen(true);
       return;
     }
@@ -114,7 +113,7 @@ export default function App() {
     const userMsg = {
       id: Date.now(),
       sender: 'user',
-      text: textToScan,
+      text: textToSend,
       timestamp: new Date().toISOString(),
     };
 
@@ -124,23 +123,31 @@ export default function App() {
     setError(null);
 
     try {
-      const scanData = await scanText(textToScan);
-      const tgMsg = {
+      const data = await sendChatMessage(textToSend);
+      const securityData = data.security || {};
+      const isBlocked = data.blocked || securityData.action === 'BLOCKED';
+
+      const assistantMsg = {
         id: Date.now() + 1,
-        sender: 'trustgate',
-        text: textToScan,
-        result: scanData,
+        sender: 'assistant',
+        text: textToSend,
+        result: securityData,
+        security: securityData,
+        aiResponse: data.response,
+        blocked: isBlocked,
+        error: data.error,
         timestamp: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, tgMsg]);
-      saveScanToHistory(textToScan, scanData);
+
+      setMessages((prev) => [...prev, assistantMsg]);
+      saveScanToHistory(textToSend, securityData);
     } catch (err) {
       const errMsg = err.message || 'TrustGate encountered an unexpected error.';
       setError(errMsg);
       const errorMsg = {
         id: Date.now() + 1,
-        sender: 'trustgate',
-        text: textToScan,
+        sender: 'assistant',
+        text: textToSend,
         error: errMsg,
         timestamp: new Date().toISOString(),
       };
@@ -159,7 +166,7 @@ export default function App() {
     }
   };
 
-  const handleNewScan = () => {
+  const handleNewChat = () => {
     setInput('');
     setMessages([]);
     setError(null);
@@ -168,24 +175,26 @@ export default function App() {
 
   const handleSelectHistory = (item) => {
     setView('chat');
-    setInput(item.rawInput || '');
+    setInput('');
     setError(null);
 
-    // Populate chat with the historical prompt and result
     const userMsg = {
       id: item.id || Date.now(),
       sender: 'user',
       text: item.rawInput,
       timestamp: item.timestamp,
     };
-    const tgMsg = {
+    const assistantMsg = {
       id: (item.id || Date.now()) + 1,
-      sender: 'trustgate',
+      sender: 'assistant',
       text: item.rawInput,
       result: item.result,
+      security: item.result,
+      aiResponse: item.result?.action === 'BLOCKED' ? null : 'Past session record restored from audit history.',
+      blocked: item.result?.action === 'BLOCKED',
       timestamp: item.timestamp,
     };
-    setMessages([userMsg, tgMsg]);
+    setMessages([userMsg, assistantMsg]);
   };
 
   const handleClearHistory = () => {
@@ -206,27 +215,22 @@ export default function App() {
     setError(null);
   };
 
+  const handleOpenSettings = (tab = 'security') => {
+    setSettingsTab(tab);
+    setIsSettingsModalOpen(true);
+  };
+
   return (
-    <div className="min-h-screen bg-[#05070B] text-[#F5F7FA] flex font-sans selection:bg-white/20 selection:text-white">
-      
-      {/* Subtle security dot grid background with calm breathing */}
-      <div className="fixed inset-0 security-grid pointer-events-none opacity-40" aria-hidden="true" />
+    <div className={`min-h-screen ${theme === 'white' ? 'theme-white bg-[#FAFAFE] text-[#0F0A1C]' : 'theme-dark bg-[#070509] text-[#FFFFFF]'} flex font-sans selection:bg-[#7C3AED]/25 selection:text-[#7C3AED] relative overflow-x-hidden transition-colors duration-300`}>
+      {/* ─── Ambient Purple Glow & Matrix Background ─── */}
+      <div className="fixed inset-0 bg-ai-aura pointer-events-none" aria-hidden="true" />
+      <div className="fixed inset-0 bg-dot-matrix pointer-events-none opacity-40" aria-hidden="true" />
 
-      {/* Subtle silver radial glow at top */}
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse 70% 35% at 50% -5%, rgba(255,255,255,0.04), transparent 70%), radial-gradient(ellipse 50% 30% at 85% 90%, rgba(255,255,255,0.02), transparent 70%)',
-        }}
-        aria-hidden="true"
-      />
-
-      {/* Left Sidebar */}
+      {/* ─── Left Sidebar ─── */}
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        onNewScan={handleNewScan}
+        onNewScan={handleNewChat}
         history={history}
         onSelectHistory={handleSelectHistory}
         onClearHistory={handleClearHistory}
@@ -235,42 +239,42 @@ export default function App() {
         onOpenAuth={() => setIsAuthModalOpen(true)}
         currentView={view}
         onSwitchView={setView}
-        onOpenOnboarding={() => setIsOnboardingOpen(true)}
+        onOpenSettings={handleOpenSettings}
+        theme={theme}
       />
 
-      {/* Main Content Area (Offset by sidebar width on desktop) */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-72 relative min-h-screen">
-        
-        {/* Sticky Header with view switcher */}
+      {/* ─── Main Content Area (Offset by sidebar width on desktop) ─── */}
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-72 relative min-h-screen z-10">
+        {/* Main Header with Theme Switcher */}
         <Header
           backendStatus={backendStatus}
           user={user}
           onOpenAuth={() => setIsAuthModalOpen(true)}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          currentView={view}
-          onSwitchView={setView}
-          onOpenOnboarding={() => setIsOnboardingOpen(true)}
+          onOpenSettings={() => handleOpenSettings('ai')}
+          theme={theme}
+          onToggleTheme={() => setTheme(theme === 'white' ? 'dark' : 'white')}
         />
 
-        {/* ─── Main View Switcher ─── */}
+        {/* ─── Main View Experience ─── */}
         <main id="main-content" className="flex-1 flex flex-col min-h-0 w-full">
           {view === 'chat' ? (
-            /* AI Chat View (Primary Experience) */
+            /* AI Chat Workspace (Primary Experience) */
             <AIChatView
               messages={messages}
               input={input}
               setInput={setInput}
-              onSend={handleScan}
+              onSend={handleSendMessage}
               loading={loading}
               error={error}
               backendStatus={backendStatus}
               onOpenAuth={() => setIsAuthModalOpen(true)}
-              onResetChat={handleNewScan}
+              onResetChat={handleNewChat}
               protectionMode={protectionMode}
-              onOpenOnboarding={() => setIsOnboardingOpen(true)}
+              theme={theme}
             />
           ) : (
-            /* Security Command Center (Secondary Experience) */
+            /* Security Overview (Secondary Experience) */
             <CommandCenterView
               onSwitchToChat={() => setView('chat')}
               protectionMode={protectionMode}
@@ -278,42 +282,30 @@ export default function App() {
               trustProfile={trustProfile}
               history={history}
               backendStatus={backendStatus}
+              theme={theme}
             />
           )}
         </main>
-
-        {/* Footer */}
-        <footer className="py-3 px-6 border-t border-white/7 text-center shrink-0">
-          <p className="text-[11px] text-[#8B95A7]/50 font-mono">
-            TrustGate AI &nbsp;·&nbsp; Prompt Injection Prevention &amp; Zero-Trust PII Redaction
-            &nbsp;·&nbsp; Protected Gateway
-          </p>
-        </footer>
       </div>
 
-      {/* ─── Modals & Flows ─── */}
-
+      {/* ─── Modals ─── */}
       {/* Authentication Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onAuthSuccess={handleAuthSuccess}
+        theme={theme}
       />
 
-      {/* Onboarding Flow (Landing → Get Started → Activation → Introduction → Protection Choice → Trust Profile → Enter TrustGate → AI Chat) */}
-      <OnboardingFlow
-        isOpen={isOnboardingOpen}
-        onClose={() => setIsOnboardingOpen(false)}
-        onComplete={() => {
-          setIsOnboardingOpen(false);
-          setView('chat');
-        }}
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        initialTab={settingsTab}
         user={user}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
-        currentMode={protectionMode}
-        setProtectionMode={setProtectionMode}
-        currentProfile={trustProfile}
-        setTrustProfile={setTrustProfile}
+        onLogout={handleLogout}
+        onClearHistory={handleClearHistory}
+        theme={theme}
       />
     </div>
   );

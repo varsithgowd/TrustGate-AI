@@ -76,7 +76,7 @@ export const register = async (email, password) => {
   }
 };
 
-// Security scan
+// Security scan (Direct inspection)
 export const scanText = async (text) => {
   if (!text || !text.trim()) {
     throw new Error('Enter some text before scanning.');
@@ -110,4 +110,41 @@ export const scanText = async (text) => {
   }
 };
 
+// Protected AI Chat (Scans via TrustGate Security Engine then invokes Gemini LLM)
+export const sendChatMessage = async (message) => {
+  if (!message || !message.trim()) {
+    throw new Error('Enter a message before sending.');
+  }
+
+  const token = getStoredToken();
+  if (!token) {
+    const err = new Error('Please log in before sending an AI request.');
+    err.isAuthError = true;
+    throw err;
+  }
+
+  try {
+    const response = await api.post('/api/ai/chat', { message });
+    return response.data;
+  } catch (err) {
+    if (!err.response) {
+      throw new Error('Unable to reach the TrustGate backend. Make sure the backend is running.');
+    }
+    if (err.response.status === 401) {
+      removeStoredToken();
+      const authErr = new Error('Authentication required. Please log in.');
+      authErr.isAuthError = true;
+      throw authErr;
+    }
+    if (err.response.status === 400) {
+      throw new Error(err.response.data?.message || 'Please enter valid text.');
+    }
+    if (err.response.status === 500) {
+      throw new Error(err.response.data?.message || 'TrustGate encountered a server error.');
+    }
+    throw new Error(err.response.data?.message || err.response.data?.error || 'TrustGate encountered an error.');
+  }
+};
+
 export default api;
+

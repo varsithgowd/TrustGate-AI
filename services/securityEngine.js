@@ -113,22 +113,23 @@ const scanText = (text) => {
         sanitizedText = sanitizedText.replace(regexes.secrets, "[REDACTED_SECRET]");
     }
 
-    let riskScore = 0;
+    let riskScore = 5;
     let riskLevel = "LOW";
     let action = "ALLOWED";
 
     if (isInjection) {
         riskLevel = "HIGH";
         action = "BLOCKED";
-        riskScore = Math.floor(Math.random() * (100 - 85 + 1)) + 85; // 85-100
+        riskScore = 95;
+        sanitizedText = "[BLOCKED BY TRUSTGATE] Adversarial prompt injection detected. The original request was not forwarded.";
     } else if (redactions.length > 0) {
         riskLevel = "MEDIUM";
         action = "SANITIZED";
-        riskScore = Math.floor(Math.random() * (60 - 40 + 1)) + 40; // 40-60
+        riskScore = 50;
     } else {
         riskLevel = "LOW";
         action = "ALLOWED";
-        riskScore = Math.floor(Math.random() * (10 - 0 + 1)) + 0; // 0-10
+        riskScore = 5;
     }
 
     return {
